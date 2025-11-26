@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  wazuh-indexer:
+    image: wazuh/wazuh-indexer:4.7.2
+    hostname: wazuh-indexer
+    restart: unless-stopped
+    ports:
+      - "9200:9200"
+    environment:
+      - OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m
+    volumes:
+      - wazuh_indexer_data:/var/lib/wazuh-indexer
+      - ./certs:/usr/share/wazuh-indexer/certs:ro
+      - ./config/wazuh-indexer/opensearch.yml:/usr/share/wazuh-indexer/config/opensearch.yml:ro
+    networks:
+      - xdr-network
+    healthcheck:
+      test: ["CMD", "curl", "-k", "-f", "https://localhost:9200"]
+      interval: 30s
+      timeout: 10s
+      retries: 15
+      start_period: 240s
+
+  wazuh-dashboard:
+    image: wazuh/wazuh-dashboard:4.7.2
+    hostname: wazuh-dashboard
+    restart: unless-stopped
+    ports:
+      - "5601:5601"
+    environment:
+      - OPENSEARCH_HOSTS=https://wazuh-indexer:9200
+    volumes:
+      - wazuh_dashboard_data:/var/lib/wazuh-dashboard
+      - ./certs:/usr/share/wazuh-dashboard/certs:ro
+      - ./config/wazuh-dashboard/opensearch_dashboards.yml:/usr/share/wazuh-dashboard/config/opensearch_dashboards.yml:ro
+    depends_on:
+      wazuh-indexer:
+        condition: service_healthy
+    networks:
+      - xdr-network
+
+  wazuh-manager:
+    image: wazuh/wazuh-manager:4.7.2
+    hostname: wazuh-manager
+    restart: unless-stopped
+    ports:
+      - "1514:1514"
+      - "1515:1515"
+      - "514:514/udp"
+    environment:
+      - INDEXER_URL=https://wazuh-indexer:9200
+    volumes:
+      - wazuh_manager_data:/var/lib/wazuh
+      - wazuh_manager_logs:/var/ossec/logs
+      - wazuh_queue_data:/var/ossec/queue
+    depends_on:
+      wazuh-indexer:
+        condition: service_healthy
+    networks:
+      - xdr-network
+
+volumes:
+  wazuh_indexer_data:
+  wazuh_dashboard_data:
+  wazuh_manager_data:
+  wazuh_manager_logs:
+  wazuh_queue_data:
+
+networks:
+  xdr-network:
+    external: true

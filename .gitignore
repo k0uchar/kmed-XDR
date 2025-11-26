@@ -1,0 +1,11 @@
+
+# Docker
+**/node_modules/
+**/venv/
+**/logs/
+**/tmp/
+**/wazuh/certs/
+**/n8n/credentials/
+*.env
+*.pem
+*.key

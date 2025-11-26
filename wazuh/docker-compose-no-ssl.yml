@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  wazuh-indexer:
+    image: wazuh/wazuh-indexer:4.7.2
+    hostname: wazuh-indexer
+    restart: unless-stopped
+    ports:
+      - "9200:9200"
+    environment:
+      - OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m
+      - plugins.security.disabled=true
+    volumes:
+      - wazuh_indexer_data:/var/lib/wazuh-indexer
+    networks:
+      - xdr-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9200"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+
+  wazuh-dashboard:
+    image: wazuh/wazuh-dashboard:4.7.2
+    hostname: wazuh-dashboard
+    restart: unless-stopped
+    ports:
+      - "5601:5601"
+    environment:
+      - OPENSEARCH_HOSTS=http://wazuh-indexer:9200
+    volumes:
+      - wazuh_dashboard_data:/var/lib/wazuh-dashboard
+    depends_on:
+      wazuh-indexer:
+        condition: service_healthy
+    networks:
+      - xdr-network
+
+  wazuh-manager:
+    image: wazuh/wazuh-manager:4.7.2
+    hostname: wazuh-manager
+    restart: unless-stopped
+    ports:
+      - "1514:1514"
+      - "1515:1515"
+      - "514:514/udp"
+    environment:
+      - INDEXER_URL=http://wazuh-indexer:9200
+    volumes:
+      - wazuh_manager_data:/var/lib/wazuh
+    depends_on:
+      wazuh-indexer:
+        condition: service_healthy
+    networks:
+      - xdr-network
+
+volumes:
+  wazuh_indexer_data:
+  wazuh_dashboard_data:
+  wazuh_manager_data:
+
+networks:
+  xdr-network:
+    external: true

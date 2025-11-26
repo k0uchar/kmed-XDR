@@ -1,0 +1,29 @@
+cluster.name: kmed-xdr-cluster
+node.name: wazuh-indexer
+network.host: 0.0.0.0
+path.data: /var/lib/wazuh-indexer
+path.logs: /usr/share/wazuh-indexer/logs
+
+# Security configuration
+plugins.security.ssl.transport.pemcert_filepath: certs/indexer.crt
+plugins.security.ssl.transport.pemkey_filepath: certs/indexer.key
+plugins.security.ssl.transport.pemtrustedcas_filepath: certs/ca.crt
+plugins.security.ssl.http.enabled: true
+plugins.security.ssl.http.pemcert_filepath: certs/indexer.crt
+plugins.security.ssl.http.pemkey_filepath: certs/indexer.key
+plugins.security.ssl.http.pemtrustedcas_filepath: certs/ca.crt
+
+# Security settings
+plugins.security.allow_unsafe_democertificates: true
+plugins.security.allow_default_init_securityindex: true
+plugins.security.authcz.admin_dn:
+  - CN=wazuh-indexer
+plugins.security.nodes_dn:
+  - CN=wazuh-indexer
+
+# Single node setup
+discovery.type: single-node
+cluster.initial_master_nodes: wazuh-indexer
+
+# Performance settings
+bootstrap.memory_lock: false
